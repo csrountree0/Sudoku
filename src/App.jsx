@@ -9,6 +9,8 @@ function App() {
   const [incorrectCells, setIncorrectCells] = useState(Array(9).fill().map(() => Array(9).fill(false)));
   const [isFinished, setIsFinished] = useState(false);
   const [numberCounts, setNumberCounts] = useState(Array(10).fill(0)); // 0-9, 0 is unused
+  const [notesMode, setNotesMode] = useState(false);
+  const [notes, setNotes] = useState(Array(9).fill().map(() => Array(9).fill().map(() => Array(10).fill(false))));
 
   const updateNumberCounts = (newBoard) => {
     const counts = Array(10).fill(0);
@@ -31,6 +33,7 @@ function App() {
     setMistakes(0);
     setIsSolving(false);
     setIncorrectCells(Array(9).fill().map(() => Array(9).fill(false)));
+    setNotes(Array(9).fill().map(() => Array(9).fill().map(() => Array(10).fill(false))));
     updateNumberCounts(puzzle);
   };
 
@@ -149,6 +152,13 @@ function App() {
       if(newBoard[selectedCell.row][selectedCell.col] === solvedBoard[selectedCell.row][selectedCell.col]) {
         return;
       }
+
+      if (notesMode) {
+        const newNotes = notes.map(row => row.map(col => [...col]));
+        newNotes[selectedCell.row][selectedCell.col][number] = !newNotes[selectedCell.row][selectedCell.col][number];
+        setNotes(newNotes);
+        return;
+      }
       
       const newIncorrectCells = incorrectCells.map(row => [...row]);
       
@@ -163,6 +173,11 @@ function App() {
       setBoard(newBoard);
       setIncorrectCells(newIncorrectCells);
       updateNumberCounts(newBoard);
+
+      // clear notes when placing a number
+      const newNotes = notes.map(row => row.map(col => [...col]));
+      newNotes[selectedCell.row][selectedCell.col] = Array(10).fill(false);
+      setNotes(newNotes);
 
       // check if the puzzle is complete
       if (checkCompletion(newBoard)) {
@@ -261,18 +276,42 @@ function App() {
                 key={`${rowIndex}-${colIndex}`}
                 className={`
                   w-full h-full flex items-center justify-center text-3xl font-bold
-                  bg-gray-800 hover:bg-gray-700 cursor-pointer aspect-square
+                  bg-gray-800 hover:bg-gray-700 cursor-pointer aspect-square relative
                   ${getHighlightClass(rowIndex, colIndex)}
                   ${(rowIndex + 1) % 3 === 0 && rowIndex !== 8 ? 'border-b-2 border-gray-600' : ''}
                   ${(colIndex + 1) % 3 === 0 && colIndex !== 8 ? 'border-r-2 border-gray-600' : ''}
                 `}
                 onClick={(e) => handleCellClick(rowIndex, colIndex, e)}
               >
-                {cell !== 0 ? cell : ''}
+                {cell !== 0 ? cell : (
+                  <div className="grid grid-cols-3 gap-0.5 w-full h-full p-0.5">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((noteNum) => (
+                      <div
+                        key={noteNum}
+                        className={`text-xs flex items-center justify-center ${
+                          notes[rowIndex][colIndex][noteNum] ? 'text-cyan-400' : 'text-transparent'
+                        }`}
+                      >
+                        {noteNum}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </>
         ))}
+      </div>
+
+      <div className="flex gap-4 mb-4">
+        <button
+          className={`px-4 py-2 rounded-md transition-colors cursor-pointer ${
+            notesMode ? 'bg-blue-600 hover:bg-blue-500' : 'bg-gray-700 hover:bg-gray-600'
+          }`}
+          onClick={(e) => {setNotesMode(!notesMode); e.stopPropagation();}}
+        >
+          Notes {notesMode ? 'On' : 'Off'}
+        </button>
       </div>
 
       <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2 sm:gap-4 justify-center">
